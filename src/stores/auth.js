@@ -12,6 +12,7 @@ export const useAuthStore = defineStore('auth', () => {
   const session = ref(null)
   const profile = ref(null)
   const loading = ref(true)
+  let isSigningUp = false
 
   const isAdmin = computed(() => profile.value?.is_admin === true)
 
@@ -23,9 +24,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     supabase.auth.onAuthStateChange(async (event, newSession) => {
       session.value = newSession
-      if (newSession) {
+      if (newSession && !isSigningUp) {
         await fetchProfile(newSession.user.id)
-      } else {
+      } else if (!newSession) {
         profile.value = null
       }
     })
@@ -41,14 +42,19 @@ export const useAuthStore = defineStore('auth', () => {
     if (!/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) {
       throw new Error('Username can only contain letters, numbers, spaces, hyphens and underscores.')
     }
-    const { data, error } = await supabase.auth.signUp({ email: toEmail(trimmed), password })
-    if (error) throw error
-    if (data.user) {
-      const { error: rpcErr } = await supabase.rpc('upsert_profile', { p_display_name: trimmed })
-      if (rpcErr) throw new Error(
-        rpcErr.message.includes('duplicate') ? 'That username is already taken.' : rpcErr.message
-      )
-      await fetchProfile(data.user.id)
+    isSigningUp = true
+    try {
+      const { data, error } = await supabase.auth.signUp({ email: toEmail(trimmed), password })
+      if (error) throw error
+      if (data.user) {
+        const { error: rpcErr } = await supabase.rpc('upsert_profile', { p_display_name: trimmed })
+        if (rpcErr) throw new Error(
+          rpcErr.message.includes('duplicate') ? 'That username is already taken.' : rpcErr.message
+        )
+        await fetchProfile(data.user.id)
+      }
+    } finally {
+      isSigningUp = false
     }
   }
 
