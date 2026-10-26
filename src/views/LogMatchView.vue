@@ -81,7 +81,6 @@ const setErrors = computed(() => {
     const lo = Math.min(w, l)
     if (hi < 11) errors.push(`Set ${i + 1}: points must reach at least 11.`)
     else if (hi - lo < 2) errors.push(`Set ${i + 1}: winner must lead by at least 2 points.`)
-    if (w <= l) errors.push(`Set ${i + 1}: winner's points must be higher than loser's.`)
   })
   return errors
 })
