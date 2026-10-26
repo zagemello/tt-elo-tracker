@@ -73,7 +73,7 @@ const eloHistory = ref([])
 const recentMatches = ref([])
 const loading = ref(true)
 
-const isOwnProfile = computed(() => auth.session?.user.id === route.params.id)
+const isOwnProfile = computed(() => auth.profile?.id === route.params.id)
 
 const winRate = computed(() => {
   if (!player.value?.matches_played) return '—'

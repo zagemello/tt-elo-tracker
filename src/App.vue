@@ -8,7 +8,7 @@
         <template v-if="auth.session">
           <RouterLink to="/log-match">Log Match</RouterLink>
           <RouterLink to="/h2h">H2H</RouterLink>
-          <RouterLink v-if="auth.profile" :to="`/profile/${auth.session.user.id}`">
+          <RouterLink v-if="auth.profile" :to="`/profile/${auth.profile.id}`">
             My Profile
           </RouterLink>
           <RouterLink v-if="auth.isAdmin" to="/admin" class="admin-link">Admin</RouterLink>

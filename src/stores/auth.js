@@ -31,8 +31,8 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  async function fetchProfile(userId) {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
+  async function fetchProfile(authUserId) {
+    const { data } = await supabase.from('profiles').select('*').eq('auth_id', authUserId).single()
     profile.value = data
   }
 
@@ -44,12 +44,10 @@ export const useAuthStore = defineStore('auth', () => {
     const { data, error } = await supabase.auth.signUp({ email: toEmail(trimmed), password })
     if (error) throw error
     if (data.user) {
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .insert({ id: data.user.id, display_name: trimmed })
-      if (profileErr) throw new Error(profileErr.message === 'duplicate key value violates unique constraint "profiles_display_name_key"'
-        ? 'That username is already taken.'
-        : profileErr.message)
+      const { error: rpcErr } = await supabase.rpc('upsert_profile', { p_display_name: trimmed })
+      if (rpcErr) throw new Error(
+        rpcErr.message.includes('duplicate') ? 'That username is already taken.' : rpcErr.message
+      )
     }
   }
 
@@ -62,11 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function updateProfile(updates) {
-    const userId = session.value.user.id
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
-      .eq('id', userId)
+      .eq('auth_id', session.value.user.id)
       .select()
       .single()
     if (error) throw error
