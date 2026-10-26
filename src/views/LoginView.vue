@@ -14,13 +14,13 @@
 
       <form @submit.prevent="handleSubmit" class="auth-form">
         <div class="field">
-          <label>Email</label>
-          <input v-model="email" type="email" required autocomplete="email" />
+          <label>Username</label>
+          <input v-model="username" type="text" required autocomplete="username" placeholder="e.g. john" />
         </div>
 
         <div class="field">
           <label>Password</label>
-          <input v-model="password" type="password" required autocomplete="current-password" minlength="6" />
+          <input v-model="password" type="password" required autocomplete="current-password" minlength="6" placeholder="min. 6 characters" />
         </div>
 
         <p v-if="error" class="error-msg">{{ error }}</p>
@@ -40,7 +40,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const mode = ref('signin')
-const email = ref('')
+const username = ref('')
 const password = ref('')
 const error = ref('')
 const successMsg = ref('')
@@ -52,10 +52,10 @@ async function handleSubmit() {
   loading.value = true
   try {
     if (mode.value === 'signin') {
-      await auth.signInWithEmail(email.value, password.value)
+      await auth.signIn(username.value, password.value)
     } else {
-      await auth.signUpWithEmail(email.value, password.value)
-      successMsg.value = 'Account created! You are now signed in.'
+      await auth.signUp(username.value, password.value)
+      successMsg.value = `Welcome, ${username.value}!`
     }
   } catch (e) {
     error.value = e.message

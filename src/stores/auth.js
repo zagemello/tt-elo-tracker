@@ -2,10 +2,18 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 
+const DOMAIN = 'tt-elo-tracker.app'
+
+function toEmail(username) {
+  return `${username.toLowerCase().trim()}@${DOMAIN}`
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const session = ref(null)
   const profile = ref(null)
   const loading = ref(true)
+
+  const isAdmin = computed(() => profile.value?.is_admin === true)
 
   async function init() {
     const { data } = await supabase.auth.getSession()
@@ -28,15 +36,29 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = data
   }
 
-  async function createProfile(displayName) {
-    const userId = session.value.user.id
-    const { data, error } = await supabase
-      .from('profiles')
-      .insert({ id: userId, display_name: displayName })
-      .select()
-      .single()
+  async function signUp(username, password) {
+    const trimmed = username.trim()
+    if (!/^[a-zA-Z0-9_\- ]+$/.test(trimmed)) {
+      throw new Error('Username can only contain letters, numbers, spaces, hyphens and underscores.')
+    }
+    const { data, error } = await supabase.auth.signUp({ email: toEmail(trimmed), password })
     if (error) throw error
-    profile.value = data
+    if (data.user) {
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .insert({ id: data.user.id, display_name: trimmed })
+      if (profileErr) throw new Error(profileErr.message === 'duplicate key value violates unique constraint "profiles_display_name_key"'
+        ? 'That username is already taken.'
+        : profileErr.message)
+    }
+  }
+
+  async function signIn(username, password) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: toEmail(username.trim()),
+      password,
+    })
+    if (error) throw new Error('Invalid username or password.')
   }
 
   async function updateProfile(updates) {
@@ -51,26 +73,9 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = data
   }
 
-  async function signInWithEmail(email, password) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-  }
-
-  async function signUpWithEmail(email, password) {
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) throw error
-  }
-
-  async function signInWithMagicLink(email) {
-    const { error } = await supabase.auth.signInWithOtp({ email })
-    if (error) throw error
-  }
-
   async function signOut() {
     await supabase.auth.signOut()
   }
-
-  const isAdmin = computed(() => profile.value?.is_admin === true)
 
   return {
     session,
@@ -79,11 +84,9 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     init,
     fetchProfile,
-    createProfile,
+    signUp,
+    signIn,
     updateProfile,
-    signInWithEmail,
-    signUpWithEmail,
-    signInWithMagicLink,
     signOut,
   }
 })
