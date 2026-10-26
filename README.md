@@ -1,38 +1,45 @@
-# tt-elo-tracker
+# TT Elo Tracker
 
-This template should help get you started developing with Vue 3 in Vite.
+A table tennis ELO tracker for small groups. Tracks match history, player ratings (Glicko-inspired), win streaks, and head-to-head records.
 
-## Recommended IDE Setup
+**Live app:** https://tt-elo-tracker.vercel.app
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## Local setup
 
 ```sh
+git clone https://github.com/zagemello/tt-elo-tracker.git
+cd tt-elo-tracker
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+Create a `.env.local` file in the root — ask Anthony for the credentials:
+
+```
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+```
 
 ```sh
 npm run dev
 ```
 
-### Compile and Minify for Production
+That's it. Everyone shares the same Supabase database — no separate DB setup needed.
 
-```sh
-npm run build
-```
+## Contributing
+
+1. Ask Anthony to add you as a collaborator on GitHub (Settings → Collaborators)
+2. Get the `.env.local` credentials from Anthony
+3. Create a branch, make your changes, open a pull request
+
+## Fresh Supabase setup (only needed if starting from scratch)
+
+Run `supabase/schema.sql` once in the Supabase SQL Editor, then:
+1. In Supabase Auth settings, disable **Confirm email**
+2. Sign up in the app with your username
+3. Grant yourself admin: `UPDATE public.profiles SET is_admin = true WHERE display_name = 'YourUsername';`
+
+## Tech stack
+
+- Vue 3 + Vite + Pinia
+- Supabase (Postgres + Auth + RLS)
+- Vercel (auto-deploys from `main`)
