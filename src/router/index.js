@@ -26,6 +26,7 @@ const router = createRouter({
       component: () => import('@/views/MatchesView.vue'),
     },
     {
+      path: '/log-match',
       name: 'log-match',
       component: () => import('@/views/LogMatchView.vue'),
       meta: { requiresAuth: true },
