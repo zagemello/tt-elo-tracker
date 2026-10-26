@@ -106,80 +106,25 @@ async function handleSubmit() {
     const totalWinnerPts = sets.value.reduce((s, set) => s + parseInt(set.winnerPoints), 0)
     const totalLoserPts = sets.value.reduce((s, set) => s + parseInt(set.loserPoints), 0)
 
-    const { data: eloResult, error: rpcErr } = await supabase.rpc('calculate_elo_update', {
-      p_winner_id: winnerId.value,
-      p_loser_id: loserId.value,
-      p_total_winner_points: totalWinnerPts,
-      p_total_loser_points: totalLoserPts,
-    })
-    if (rpcErr) throw rpcErr
+    const winnerSets = sets.value.filter((s) => parseInt(s.winnerPoints) > parseInt(s.loserPoints)).length
+    const loserSets  = sets.value.filter((s) => parseInt(s.loserPoints) > parseInt(s.winnerPoints)).length
 
-    const { new_winner_elo, new_loser_elo, new_winner_rd, new_loser_rd, eff_winner_elo, eff_loser_elo } = eloResult[0]
+    const { data, error } = await supabase.rpc('record_match', {
+      p_winner_id:        winnerId.value,
+      p_loser_id:         loserId.value,
+      p_winner_score:     winnerSets,
+      p_loser_score:      loserSets,
+      p_total_winner_pts: totalWinnerPts,
+      p_total_loser_pts:  totalLoserPts,
+      p_sets: sets.value.map((s) => ({
+        winner_points: parseInt(s.winnerPoints),
+        loser_points:  parseInt(s.loserPoints),
+      })),
+    })
+    if (error) throw error
 
     const winnerProfile = players.value.find((p) => p.id === winnerId.value)
-    const loserProfile = players.value.find((p) => p.id === loserId.value)
-    const now = new Date().toISOString()
-
-    const { data: match, error: matchErr } = await supabase
-      .from('matches')
-      .insert({
-        winner_id: winnerId.value,
-        loser_id: loserId.value,
-        winner_score: sets.value.filter((s) => parseInt(s.winnerPoints) > parseInt(s.loserPoints)).length,
-        loser_score: sets.value.filter((s) => parseInt(s.loserPoints) > parseInt(s.winnerPoints)).length,
-        winner_elo_before: eff_winner_elo,
-        loser_elo_before: eff_loser_elo,
-        winner_elo_after: new_winner_elo,
-        loser_elo_after: new_loser_elo,
-      })
-      .select()
-      .single()
-    if (matchErr) throw matchErr
-
-    await supabase.from('match_sets').insert(
-      sets.value.map((s, i) => ({
-        match_id: match.id,
-        set_number: i + 1,
-        winner_points: parseInt(s.winnerPoints),
-        loser_points: parseInt(s.loserPoints),
-      }))
-    )
-
-    await supabase.from('elo_history').insert([
-      { player_id: winnerId.value, match_id: match.id, new_elo: new_winner_elo },
-      { player_id: loserId.value, match_id: match.id, new_elo: new_loser_elo },
-    ])
-
-    const newWinnerStreak = winnerProfile.current_streak >= 0 ? winnerProfile.current_streak + 1 : 1
-    const newLoserStreak = loserProfile.current_streak <= 0 ? loserProfile.current_streak - 1 : -1
-
-    await Promise.all([
-      supabase
-        .from('profiles')
-        .update({
-          elo: new_winner_elo,
-          rd: new_winner_rd,
-          last_played_at: now,
-          peak_elo: Math.max(winnerProfile.peak_elo, new_winner_elo),
-          matches_played: winnerProfile.matches_played + 1,
-          wins: winnerProfile.wins + 1,
-          current_streak: newWinnerStreak,
-        })
-        .eq('id', winnerId.value),
-      supabase
-        .from('profiles')
-        .update({
-          elo: new_loser_elo,
-          rd: new_loser_rd,
-          last_played_at: now,
-          matches_played: loserProfile.matches_played + 1,
-          losses: loserProfile.losses + 1,
-          current_streak: newLoserStreak,
-        })
-        .eq('id', loserId.value),
-    ])
-
-    successMsg.value = `Match recorded! ${winnerProfile.display_name} +${new_winner_elo - eff_winner_elo} Elo`
+    successMsg.value = `Match recorded! +ELO for ${winnerProfile.display_name}`
     winnerId.value = ''
     loserId.value = ''
     sets.value = [{ winnerPoints: '', loserPoints: '' }]
