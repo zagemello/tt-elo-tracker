@@ -5,6 +5,7 @@
       <RouterLink to="/" class="nav-brand">🏓 TT Elo</RouterLink>
       <div class="nav-links">
         <RouterLink to="/">Leaderboard</RouterLink>
+        <RouterLink to="/matches">Matches</RouterLink>
         <template v-if="auth.session">
           <RouterLink to="/log-match">Log Match</RouterLink>
           <RouterLink to="/h2h">H2H</RouterLink>

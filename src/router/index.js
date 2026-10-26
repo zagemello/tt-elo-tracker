@@ -21,7 +21,11 @@ const router = createRouter({
       component: () => import('@/views/ProfileView.vue'),
     },
     {
-      path: '/log-match',
+      path: '/matches',
+      name: 'matches',
+      component: () => import('@/views/MatchesView.vue'),
+    },
+    {
       name: 'log-match',
       component: () => import('@/views/LogMatchView.vue'),
       meta: { requiresAuth: true },
