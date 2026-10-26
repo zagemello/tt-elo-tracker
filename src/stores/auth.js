@@ -48,6 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (rpcErr) throw new Error(
         rpcErr.message.includes('duplicate') ? 'That username is already taken.' : rpcErr.message
       )
+      await fetchProfile(data.user.id)
     }
   }
 
