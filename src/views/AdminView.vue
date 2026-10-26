@@ -4,7 +4,7 @@
 
     <div class="section">
       <h3>Recent Matches</h3>
-      <p class="admin-note">Deleting a match removes the record but does not recalculate ELO history.</p>
+      <p class="admin-note">Deleting a match reverses its ELO impact. If other matches happened after it, those ELOs may be slightly off.</p>
 
       <div v-if="loading" class="loading">Loading…</div>
 
@@ -50,9 +50,9 @@ async function fetchMatches() {
 }
 
 async function deleteMatch(match) {
-  if (!confirm(`Delete match: ${match.winner.display_name} vs ${match.loser.display_name}?`)) return
+  if (!confirm(`Delete match: ${match.winner.display_name} vs ${match.loser.display_name}?\nThis will reverse the ELO changes.`)) return
   deleting.value = match.id
-  const { error } = await supabase.from('matches').delete().eq('id', match.id)
+  const { error } = await supabase.rpc('delete_match', { p_match_id: match.id })
   if (error) { alert(error.message); deleting.value = null; return }
   matches.value = matches.value.filter((m) => m.id !== match.id)
   deleting.value = null
