@@ -36,9 +36,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+const router = useRouter()
 const mode = ref('signin')
 const username = ref('')
 const password = ref('')
@@ -55,8 +57,8 @@ async function handleSubmit() {
       await auth.signIn(username.value, password.value)
     } else {
       await auth.signUp(username.value, password.value)
-      successMsg.value = `Welcome, ${username.value}!`
     }
+    router.push('/')
   } catch (e) {
     error.value = e.message
   } finally {
