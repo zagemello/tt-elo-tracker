@@ -99,6 +99,13 @@ a:hover { text-decoration: underline; }
 }
 .btn-ghost:hover { color: var(--text); }
 .btn-remove { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; padding: 0 0.25rem; }
+.btn-danger { background: transparent; color: var(--loss); border: 1px solid var(--loss); border-radius: var(--radius); padding: 0.35rem 0.75rem; font-size: 0.8rem; cursor: pointer; }
+.btn-danger:hover:not(:disabled) { background: var(--loss); color: #fff; }
+.btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.admin-link { color: #f59e0b !important; }
+.admin-match-row { justify-content: space-between; }
+.admin-note { color: var(--text-muted); font-size: 0.82rem; margin-bottom: 1rem; }
 
 /* Form fields */
 .field { display: flex; flex-direction: column; gap: 0.35rem; }

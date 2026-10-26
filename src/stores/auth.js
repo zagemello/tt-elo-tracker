@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -70,10 +70,13 @@ export const useAuthStore = defineStore('auth', () => {
     await supabase.auth.signOut()
   }
 
+  const isAdmin = computed(() => profile.value?.is_admin === true)
+
   return {
     session,
     profile,
     loading,
+    isAdmin,
     init,
     fetchProfile,
     createProfile,

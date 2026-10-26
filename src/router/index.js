@@ -27,6 +27,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/views/AdminView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/h2h',
       name: 'h2h',
       component: () => import('@/views/H2HView.vue'),

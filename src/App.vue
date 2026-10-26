@@ -11,6 +11,7 @@
           <RouterLink v-if="auth.profile" :to="`/profile/${auth.session.user.id}`">
             My Profile
           </RouterLink>
+          <RouterLink v-if="auth.isAdmin" to="/admin" class="admin-link">Admin</RouterLink>
         </template>
       </div>
       <RouterLink v-if="!auth.session" to="/login" class="btn-primary">Login / Sign up</RouterLink>
