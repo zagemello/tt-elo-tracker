@@ -10,7 +10,6 @@
       <div class="tab-row">
         <button :class="{ active: mode === 'signin' }" @click="mode = 'signin'">Sign In</button>
         <button :class="{ active: mode === 'signup' }" @click="mode = 'signup'">Sign Up</button>
-        <button :class="{ active: mode === 'magic' }" @click="mode = 'magic'">Magic Link</button>
       </div>
 
       <form @submit.prevent="handleSubmit" class="auth-form">
@@ -19,16 +18,16 @@
           <input v-model="email" type="email" required autocomplete="email" />
         </div>
 
-        <div v-if="mode !== 'magic'" class="field">
+        <div class="field">
           <label>Password</label>
-          <input v-model="password" type="password" required autocomplete="current-password" />
+          <input v-model="password" type="password" required autocomplete="current-password" minlength="6" />
         </div>
 
         <p v-if="error" class="error-msg">{{ error }}</p>
         <p v-if="successMsg" class="success-msg">{{ successMsg }}</p>
 
         <button type="submit" class="btn-primary" :disabled="loading">
-          {{ loading ? 'Loading…' : submitLabel }}
+          {{ loading ? 'Loading…' : mode === 'signin' ? 'Sign In' : 'Create Account' }}
         </button>
       </form>
     </div>
@@ -36,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -47,12 +46,6 @@ const error = ref('')
 const successMsg = ref('')
 const loading = ref(false)
 
-const submitLabel = computed(() => {
-  if (mode.value === 'signin') return 'Sign In'
-  if (mode.value === 'signup') return 'Create Account'
-  return 'Send Magic Link'
-})
-
 async function handleSubmit() {
   error.value = ''
   successMsg.value = ''
@@ -60,12 +53,9 @@ async function handleSubmit() {
   try {
     if (mode.value === 'signin') {
       await auth.signInWithEmail(email.value, password.value)
-    } else if (mode.value === 'signup') {
-      await auth.signUpWithEmail(email.value, password.value)
-      successMsg.value = 'Check your email to confirm your account.'
     } else {
-      await auth.signInWithMagicLink(email.value)
-      successMsg.value = 'Magic link sent — check your inbox.'
+      await auth.signUpWithEmail(email.value, password.value)
+      successMsg.value = 'Account created! You are now signed in.'
     }
   } catch (e) {
     error.value = e.message
