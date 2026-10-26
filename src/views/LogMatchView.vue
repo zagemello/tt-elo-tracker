@@ -179,7 +179,7 @@ async function handleSubmit() {
         .eq('id', loserId.value),
     ])
 
-    successMsg.value = `Match recorded! ${winnerProfile.display_name} +${new_winner_elo - winnerProfile.elo} Elo`
+    successMsg.value = `Match recorded! ${winnerProfile.display_name} +${new_winner_elo - eff_winner_elo} Elo`
     winnerId.value = ''
     loserId.value = ''
     sets.value = [{ winnerPoints: '', loserPoints: '' }]

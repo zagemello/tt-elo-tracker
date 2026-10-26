@@ -30,10 +30,7 @@ const router = createRouter({
       path: '/admin',
       name: 'admin',
       component: () => import('@/views/AdminView.vue'),
-      meta: { requiresAuth: true },
-    },
-    {
-      path: '/h2h',
+      meta: { requiresAuth: true, requiresAdmin: true },
       name: 'h2h',
       component: () => import('@/views/H2HView.vue'),
     },
@@ -44,6 +41,7 @@ router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (auth.loading) await new Promise((r) => setTimeout(r, 50))
 
+  if (to.meta.requiresAdmin && !auth.isAdmin) return { name: 'leaderboard' }
   if (to.meta.requiresAuth && !auth.session) return { name: 'login' }
   if (to.meta.guestOnly && auth.session) return { name: 'leaderboard' }
 })
