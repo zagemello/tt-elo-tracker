@@ -150,6 +150,7 @@ a:hover { text-decoration: underline; }
 .player-cell { display: flex; align-items: center; gap: 0.65rem; }
 .rank { font-weight: 700; color: var(--text-muted); width: 2rem; }
 .elo { font-weight: 700; font-size: 1rem; color: var(--accent); }
+.elo-uncertain { color: var(--text-muted); font-size: 0.8rem; margin-left: 1px; }
 .streak-win { color: var(--win); font-weight: 600; }
 .streak-loss { color: var(--loss); font-weight: 600; }
 

@@ -14,7 +14,7 @@
           <h2>{{ player.display_name }}</h2>
           <div class="stats-row">
             <div class="stat">
-              <span class="stat-value">{{ player.elo }}</span>
+              <span class="stat-value">{{ player.elo }}<span v-if="player.rd > 100" class="elo-uncertain" title="Rating still settling">?</span></span>
               <span class="stat-label">Elo</span>
             </div>
             <div class="stat">

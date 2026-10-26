@@ -114,10 +114,11 @@ async function handleSubmit() {
     })
     if (rpcErr) throw rpcErr
 
-    const { new_winner_elo, new_loser_elo } = eloResult[0]
+    const { new_winner_elo, new_loser_elo, new_winner_rd, new_loser_rd, eff_winner_elo, eff_loser_elo } = eloResult[0]
 
     const winnerProfile = players.value.find((p) => p.id === winnerId.value)
     const loserProfile = players.value.find((p) => p.id === loserId.value)
+    const now = new Date().toISOString()
 
     const { data: match, error: matchErr } = await supabase
       .from('matches')
@@ -126,8 +127,8 @@ async function handleSubmit() {
         loser_id: loserId.value,
         winner_score: sets.value.filter((s) => parseInt(s.winnerPoints) > parseInt(s.loserPoints)).length,
         loser_score: sets.value.filter((s) => parseInt(s.loserPoints) > parseInt(s.winnerPoints)).length,
-        winner_elo_before: winnerProfile.elo,
-        loser_elo_before: loserProfile.elo,
+        winner_elo_before: eff_winner_elo,
+        loser_elo_before: eff_loser_elo,
         winner_elo_after: new_winner_elo,
         loser_elo_after: new_loser_elo,
       })
@@ -157,6 +158,8 @@ async function handleSubmit() {
         .from('profiles')
         .update({
           elo: new_winner_elo,
+          rd: new_winner_rd,
+          last_played_at: now,
           peak_elo: Math.max(winnerProfile.peak_elo, new_winner_elo),
           matches_played: winnerProfile.matches_played + 1,
           wins: winnerProfile.wins + 1,
@@ -167,6 +170,8 @@ async function handleSubmit() {
         .from('profiles')
         .update({
           elo: new_loser_elo,
+          rd: new_loser_rd,
+          last_played_at: now,
           matches_played: loserProfile.matches_played + 1,
           losses: loserProfile.losses + 1,
           current_streak: newLoserStreak,

@@ -39,7 +39,7 @@
             <PlayerAvatar :url="player.avatar_url" :name="player.display_name" :size="36" />
             <span>{{ player.display_name }}</span>
           </td>
-          <td class="elo">{{ player.elo }}</td>
+          <td class="elo">{{ player.elo }}<span v-if="player.rd > 100" class="elo-uncertain" title="Rating still settling">?</span></td>
           <td>{{ player.matches_played }}</td>
           <td>{{ winRate(player) }}</td>
           <td>
