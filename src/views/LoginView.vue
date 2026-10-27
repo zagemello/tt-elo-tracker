@@ -2,7 +2,7 @@
   <div class="auth">
     <AppCard class="auth__card">
       <div class="auth__header">
-        <span class="auth__ball" aria-hidden="true" />
+        <img :src="logo" alt="TT Elo" class="auth__logo" />
         <h1>{{ mode === 'signin' ? 'Welcome back' : 'Join the league' }}</h1>
         <p>Sign in to log matches and track your ranking.</p>
       </div>
@@ -40,6 +40,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import logo from '@/assets/logo.svg'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
 import AppAlert from '@/components/AppAlert.vue'
@@ -95,14 +96,11 @@ async function handleSubmit() {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
 }
-.auth__ball {
+.auth__logo {
   display: block;
-  width: 2.25rem;
-  height: 2.25rem;
+  height: 6rem;
+  width: auto;
   margin: 0 auto var(--space-3);
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: inset -4px -4px 0 rgb(0 0 0 / 0.18);
 }
 .auth__form {
   margin-top: var(--space-5);

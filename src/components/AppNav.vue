@@ -2,8 +2,7 @@
   <header class="topbar">
     <div class="topbar__inner">
       <RouterLink to="/" class="brand" aria-label="TT Elo home">
-        <span class="brand__ball" aria-hidden="true" />
-        <span class="brand__name">TT Elo</span>
+        <img :src="logo" alt="TT Elo" class="brand__logo" />
       </RouterLink>
 
       <nav class="desktop-links" aria-label="Main">
@@ -30,6 +29,7 @@
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import logo from '@/assets/logo.svg'
 import AppButton from './AppButton.vue'
 import AppIcon from './AppIcon.vue'
 
@@ -86,22 +86,10 @@ const tabs = computed(() => {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--text-lg);
-  letter-spacing: -0.02em;
 }
-.brand:hover {
-  text-decoration: none;
-}
-.brand__ball {
-  width: 0.95rem;
-  height: 0.95rem;
-  border-radius: 50%;
-  background: var(--color-accent);
-  box-shadow: inset -2px -2px 0 rgb(0 0 0 / 0.18);
+.brand__logo {
+  height: 2.5rem;
+  width: auto;
 }
 
 .desktop-links {
