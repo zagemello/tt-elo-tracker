@@ -31,13 +31,6 @@ That's it. Everyone shares the same Supabase database — no separate DB setup n
 2. Get the `.env.local` credentials from Anthony
 3. Create a branch, make your changes, open a pull request
 
-## Fresh Supabase setup (only needed if starting from scratch)
-
-Run `supabase/schema.sql` once in the Supabase SQL Editor, then:
-1. In Supabase Auth settings, disable **Confirm email**
-2. Sign up in the app with your username
-3. Grant yourself admin: `UPDATE public.profiles SET is_admin = true WHERE display_name = 'YourUsername';`
-
 ## Tech stack
 
 - Vue 3 + Vite + Pinia
