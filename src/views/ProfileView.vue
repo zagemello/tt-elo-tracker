@@ -1,59 +1,51 @@
 <template>
-  <div class="page">
-    <div v-if="loading" class="loading">Loading…</div>
+  <div>
+    <LoadingState v-if="loading" />
     <template v-else-if="player">
-      <div class="profile-header">
-        <PlayerAvatar
-          :url="player.avatar_url"
-          :name="player.display_name"
-          :size="80"
-          :editable="isOwnProfile"
-          @upload="handleAvatarUpload"
-        />
-        <div class="profile-info">
-          <h2>{{ player.display_name }}</h2>
-          <div class="stats-row">
-            <div class="stat">
-              <span class="stat-value">{{ player.elo }}<span v-if="player.rd > 100" class="elo-uncertain" title="Rating still settling">?</span></span>
-              <span class="stat-label">Elo</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value">{{ player.peak_elo }}</span>
-              <span class="stat-label">Peak Elo</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value">{{ player.matches_played }}</span>
-              <span class="stat-label">Games</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value">{{ winRate }}</span>
-              <span class="stat-label">Win Rate</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value" :class="streakClass">{{ streakLabel }}</span>
-              <span class="stat-label">Streak</span>
-            </div>
-          </div>
+      <AppCard class="hero">
+        <div class="hero__who">
+          <PlayerAvatar
+            :url="player.avatar_url"
+            :name="player.display_name"
+            :size="72"
+            :editable="isOwnProfile"
+            @upload="handleAvatarUpload"
+          />
+          <h1 class="hero__name">{{ player.display_name }}</h1>
         </div>
-      </div>
 
-      <div class="section">
-        <h3>Elo Progression</h3>
-        <EloChart :history="eloHistory" />
-      </div>
+        <div class="hero__elo">
+          <span class="hero__elo-value num">
+            {{ player.elo }}<span v-if="player.rd > 100" class="hero__unsure" title="Rating still settling">?</span>
+          </span>
+          <span class="hero__elo-label">Elo</span>
+        </div>
 
-      <div class="section">
-        <h3>Recent Matches</h3>
-        <MatchCard
-          v-for="m in recentMatches"
-          :key="m.id"
-          :match="m"
-          :viewerId="player.id"
-        />
-        <p v-if="!recentMatches.length" class="empty">No matches yet.</p>
-      </div>
+        <div class="hero__stats">
+          <StatTile label="Peak" :value="player.peak_elo" />
+          <StatTile label="Games" :value="player.matches_played" />
+          <StatTile label="Win rate" :value="winRate" />
+          <StatTile label="Streak" :value="streakLabel" :tone="streakClass" />
+        </div>
+      </AppCard>
+
+      <AppAlert v-if="uploadError" class="upload-error">{{ uploadError }}</AppAlert>
+
+      <SectionBlock title="Elo progression">
+        <AppCard>
+          <EmptyState v-if="!eloHistory.length" title="No rating history yet" />
+          <EloChart v-else :history="eloHistory" :label1="player.display_name" />
+        </AppCard>
+      </SectionBlock>
+
+      <SectionBlock title="Recent matches">
+        <EmptyState v-if="!recentMatches.length" title="No matches yet" />
+        <ul v-else class="stack match-list">
+          <li v-for="m in recentMatches" :key="m.id"><MatchCard :match="m" :viewerId="player.id" /></li>
+        </ul>
+      </SectionBlock>
     </template>
-    <p v-else class="empty">Player not found.</p>
+    <EmptyState v-else title="Player not found" />
   </div>
 </template>
 
@@ -65,6 +57,13 @@ import { useAuthStore } from '@/stores/auth'
 import PlayerAvatar from '@/components/PlayerAvatar.vue'
 import EloChart from '@/components/EloChart.vue'
 import MatchCard from '@/components/MatchCard.vue'
+import AppCard from '@/components/AppCard.vue'
+import AppAlert from '@/components/AppAlert.vue'
+import StatTile from '@/components/StatTile.vue'
+import SectionBlock from '@/components/SectionBlock.vue'
+import LoadingState from '@/components/LoadingState.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import { winRate as formatWinRate, streakLabel as formatStreak, streakTone } from '@/lib/format'
 
 const route = useRoute()
 const auth = useAuthStore()
@@ -75,22 +74,10 @@ const loading = ref(true)
 
 const isOwnProfile = computed(() => auth.profile?.id === route.params.id)
 
-const winRate = computed(() => {
-  if (!player.value?.matches_played) return '—'
-  return ((player.value.wins / player.value.matches_played) * 100).toFixed(0) + '%'
-})
-
-const streakLabel = computed(() => {
-  const s = player.value?.current_streak
-  if (!s) return '—'
-  return s > 0 ? `${s}W` : `${Math.abs(s)}L`
-})
-
-const streakClass = computed(() => {
-  const s = player.value?.current_streak
-  if (!s) return ''
-  return s > 0 ? 'streak-win' : 'streak-loss'
-})
+const winRate = computed(() => formatWinRate(player.value))
+const streakLabel = computed(() => formatStreak(player.value))
+const streakClass = computed(() => streakTone(player.value))
+const uploadError = ref('')
 
 async function load() {
   const id = route.params.id
@@ -117,12 +104,13 @@ async function load() {
 }
 
 async function handleAvatarUpload(file) {
+  uploadError.value = ''
   const compressed = await compressImage(file, 500 * 1024)
   const path = `${auth.session.user.id}/avatar.jpg`
   const { error: uploadErr } = await supabase.storage
     .from('avatars')
     .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' })
-  if (uploadErr) { alert(uploadErr.message); return }
+  if (uploadErr) { uploadError.value = uploadErr.message; return }
 
   const { data } = supabase.storage.from('avatars').getPublicUrl(path)
   await auth.updateProfile({ avatar_url: data.publicUrl })
@@ -154,3 +142,57 @@ function compressImage(file, maxBytes) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.hero {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+.hero__who {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.hero__name {
+  font-size: var(--text-xl);
+  overflow-wrap: anywhere;
+}
+.hero__elo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.hero__elo-value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--color-accent-text);
+}
+.hero__unsure {
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+}
+.hero__elo-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.hero__stats {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-line);
+}
+.upload-error {
+  margin-top: var(--space-3);
+}
+.match-list {
+  list-style: none;
+  gap: var(--space-2);
+}
+</style>

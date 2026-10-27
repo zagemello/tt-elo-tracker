@@ -1,62 +1,42 @@
 <template>
-  <div class="page">
-    <h2>Recent Matches</h2>
+  <div>
+    <PageHeader title="Matches" subtitle="The latest results across the league." />
 
-    <div v-if="loading" class="loading">Loading…</div>
-    <div v-else>
-      <div v-if="!matches.length" class="empty">No matches yet.</div>
-      <div v-for="m in matches" :key="m.id" class="match-card admin-match-row">
-        <div class="match-players">
-          <span class="win-name">{{ m.winner.display_name }}</span>
-          <span class="match-score">{{ m.winner_score }}–{{ m.loser_score }}</span>
-          <span>{{ m.loser.display_name }}</span>
-        </div>
-        <span class="match-date">{{ formatDate(m.played_at) }}</span>
-        <button
-          v-if="auth.isAdmin"
-          class="btn-danger"
-          :disabled="deleting === m.id"
-          @click="deleteMatch(m)"
-        >
-          {{ deleting === m.id ? '…' : 'Delete' }}
-        </button>
-      </div>
-    </div>
+    <AppAlert v-if="error">{{ error }}</AppAlert>
+    <LoadingState v-if="loading" />
+    <EmptyState v-else-if="!matches.length" title="No matches yet">Results show up here as soon as one is logged.</EmptyState>
+
+    <ul v-else class="stack match-list">
+      <li v-for="m in matches" :key="m.id">
+        <MatchCard :match="m">
+          <template v-if="auth.isAdmin" #actions>
+            <AppButton variant="danger" size="sm" :loading="deletingId === m.id" @click="deleteMatch(m)">
+              {{ deletingId === m.id ? 'Deleting…' : 'Delete' }}
+            </AppButton>
+          </template>
+        </MatchCard>
+      </li>
+    </ul>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { useMatches } from '@/composables/useMatches'
+import PageHeader from '@/components/PageHeader.vue'
+import LoadingState from '@/components/LoadingState.vue'
+import EmptyState from '@/components/EmptyState.vue'
+import AppAlert from '@/components/AppAlert.vue'
+import AppButton from '@/components/AppButton.vue'
+import MatchCard from '@/components/MatchCard.vue'
 
 const auth = useAuthStore()
-const matches = ref([])
-const loading = ref(true)
-const deleting = ref(null)
-
-async function fetchMatches() {
-  const { data } = await supabase
-    .from('matches')
-    .select('*, winner:winner_id(display_name), loser:loser_id(display_name)')
-    .order('played_at', { ascending: false })
-    .limit(50)
-  matches.value = data ?? []
-  loading.value = false
-}
-
-async function deleteMatch(match) {
-  if (!confirm(`Delete match: ${match.winner.display_name} vs ${match.loser.display_name}?\nThis will reverse the ELO changes.`)) return
-  deleting.value = match.id
-  const { error } = await supabase.rpc('delete_match', { p_match_id: match.id })
-  if (error) { alert(error.message); deleting.value = null; return }
-  matches.value = matches.value.filter((m) => m.id !== match.id)
-  deleting.value = null
-}
-
-function formatDate(d) {
-  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-onMounted(fetchMatches)
+const { matches, loading, deletingId, error, deleteMatch } = useMatches()
 </script>
+
+<style scoped>
+.match-list {
+  list-style: none;
+  gap: var(--space-2);
+}
+</style>
