@@ -1,58 +1,52 @@
 <template>
-  <div class="page">
-    <h2>Head-to-Head</h2>
+  <div>
+    <PageHeader title="Head-to-head" subtitle="Compare two players' record and rating history." />
 
-    <div class="h2h-pickers">
-      <div class="field">
-        <label>Player A</label>
-        <select v-model="playerAId">
+    <form class="pickers" @submit.prevent="loadH2H">
+      <FormField v-slot="{ id }" label="Player A">
+        <select :id="id" v-model="playerAId" class="control">
           <option value="" disabled>Select player</option>
           <option v-for="p in players" :key="p.id" :value="p.id">{{ p.display_name }}</option>
         </select>
-      </div>
-      <div class="vs">vs</div>
-      <div class="field">
-        <label>Player B</label>
-        <select v-model="playerBId">
+      </FormField>
+      <span class="pickers__vs" aria-hidden="true">vs</span>
+      <FormField v-slot="{ id }" label="Player B">
+        <select :id="id" v-model="playerBId" class="control">
           <option value="" disabled>Select player</option>
           <option v-for="p in players" :key="p.id" :value="p.id">{{ p.display_name }}</option>
         </select>
-      </div>
-    </div>
+      </FormField>
+      <AppButton type="submit" :disabled="!canCompare" class="pickers__submit">Compare</AppButton>
+    </form>
 
-    <button class="btn-primary" :disabled="!canCompare" @click="loadH2H">Compare</button>
+    <AppAlert v-if="error" class="h2h-error">{{ error }}</AppAlert>
 
-    <div v-if="loaded" class="h2h-results">
-      <div class="h2h-summary">
-        <div class="h2h-side">
-          <span class="h2h-name">{{ playerA?.display_name }}</span>
-          <span class="h2h-wins">{{ aWins }} W</span>
+    <div v-if="loaded">
+      <AppCard class="versus">
+        <div class="versus__side">
+          <span class="versus__name">{{ playerA?.display_name }}</span>
+          <span class="versus__wins num">{{ aWins }}</span>
         </div>
-        <div class="h2h-divider">—</div>
-        <div class="h2h-side">
-          <span class="h2h-wins">{{ bWins }} W</span>
-          <span class="h2h-name">{{ playerB?.display_name }}</span>
+        <span class="versus__sep" aria-hidden="true">–</span>
+        <div class="versus__side versus__side--right">
+          <span class="versus__name">{{ playerB?.display_name }}</span>
+          <span class="versus__wins num">{{ bWins }}</span>
         </div>
-      </div>
+        <p class="versus__sets text-muted num">Sets: {{ totalSetsA }} – {{ totalSetsB }}</p>
+      </AppCard>
 
-      <div class="section">
-        <h3>Set Differential</h3>
-        <p>
-          {{ playerA?.display_name }} {{ totalSetsA }} – {{ totalSetsB }}
-          {{ playerB?.display_name }}
-        </p>
-      </div>
+      <SectionBlock title="Elo history">
+        <AppCard>
+          <EloChart :history="eloHistoryA" :history2="eloHistoryB" :label1="playerA?.display_name" :label2="playerB?.display_name" />
+        </AppCard>
+      </SectionBlock>
 
-      <div class="section">
-        <h3>Elo History</h3>
-        <EloChart :history="eloHistoryA" :history2="eloHistoryB" :label2="playerB?.display_name" :label1="playerA?.display_name" />
-      </div>
-
-      <div class="section">
-        <h3>Match History</h3>
-        <MatchCard v-for="m in h2hMatches" :key="m.id" :match="m" :viewerId="playerAId" />
-        <p v-if="!h2hMatches.length" class="empty">No matches between these players yet.</p>
-      </div>
+      <SectionBlock title="Match history">
+        <EmptyState v-if="!h2hMatches.length" title="No matches between these players yet" />
+        <ul v-else class="stack match-list">
+          <li v-for="m in h2hMatches" :key="m.id"><MatchCard :match="m" :viewerId="playerAId" /></li>
+        </ul>
+      </SectionBlock>
     </div>
   </div>
 </template>
@@ -62,6 +56,13 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import EloChart from '@/components/EloChart.vue'
 import MatchCard from '@/components/MatchCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import AppCard from '@/components/AppCard.vue'
+import AppButton from '@/components/AppButton.vue'
+import AppAlert from '@/components/AppAlert.vue'
+import FormField from '@/components/FormField.vue'
+import SectionBlock from '@/components/SectionBlock.vue'
+import EmptyState from '@/components/EmptyState.vue'
 
 const players = ref([])
 const playerAId = ref('')
@@ -72,6 +73,7 @@ const h2hMatches = ref([])
 const eloHistoryA = ref([])
 const eloHistoryB = ref([])
 const loaded = ref(false)
+const error = ref('')
 
 const canCompare = computed(() => playerAId.value && playerBId.value && playerAId.value !== playerBId.value)
 
@@ -87,11 +89,11 @@ const totalSetsB = computed(() =>
 
 async function loadH2H() {
   loaded.value = false
+  error.value = ''
   const aId = playerAId.value
   const bId = playerBId.value
 
-  const [{ data: pa }, { data: pb }, { data: matches }, { data: histA }, { data: histB }] =
-    await Promise.all([
+  const results = await Promise.all([
       supabase.from('profiles').select('*').eq('id', aId).single(),
       supabase.from('profiles').select('*').eq('id', bId).single(),
       supabase
@@ -111,7 +113,14 @@ async function loadH2H() {
         .select('new_elo, recorded_at')
         .eq('player_id', bId)
         .order('recorded_at', { ascending: true }),
-    ])
+  ])
+
+  const failed = results.find((r) => r.error)
+  if (failed) {
+    error.value = `Couldn't load the comparison: ${failed.error.message}`
+    return
+  }
+  const [{ data: pa }, { data: pb }, { data: matches }, { data: histA }, { data: histB }] = results
 
   playerA.value = pa
   playerB.value = pb
@@ -122,7 +131,78 @@ async function loadH2H() {
 }
 
 ;(async () => {
-  const { data } = await supabase.from('profiles').select('id, display_name').order('display_name')
+  const { data, error: playersError } = await supabase.from('profiles').select('id, display_name').order('display_name')
+  if (playersError) error.value = `Couldn't load players: ${playersError.message}`
   players.value = data ?? []
 })()
 </script>
+
+<style scoped>
+.h2h-error {
+  margin-top: var(--space-4);
+}
+.pickers {
+  display: grid;
+  gap: var(--space-3);
+}
+.pickers__vs {
+  justify-self: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.versus {
+  margin-top: var(--space-6);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+.versus__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.versus__side--right {
+  align-items: flex-end;
+  text-align: right;
+}
+.versus__name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.versus__wins {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text-2xl);
+  line-height: 1;
+}
+.versus__side:first-child .versus__wins {
+  color: var(--color-accent-text);
+}
+.versus__sep {
+  font-size: var(--text-xl);
+  color: var(--color-text-muted);
+}
+.versus__sets {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: var(--text-sm);
+}
+.match-list {
+  list-style: none;
+  gap: var(--space-2);
+}
+
+@media (min-width: 40rem) {
+  .pickers {
+    grid-template-columns: 1fr auto 1fr auto;
+    align-items: end;
+  }
+  .pickers__vs {
+    padding-bottom: var(--space-3);
+  }
+}
+</style>

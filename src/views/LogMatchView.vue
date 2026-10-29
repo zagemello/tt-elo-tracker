@@ -1,63 +1,63 @@
 <template>
-  <div class="page">
-    <h2>Log a Match</h2>
+  <div>
+    <PageHeader title="Log a match" subtitle="Enter the points for each set. Elo updates right away." />
 
-    <form @submit.prevent="handleSubmit" class="match-form">
-      <div class="players-row">
-        <div class="field">
-          <label>Winner</label>
-          <select v-model="winnerId" required>
-            <option value="" disabled>Select winner</option>
-            <option v-for="p in availablePlayers" :key="p.id" :value="p.id">
-              {{ p.display_name }} ({{ p.elo }})
-            </option>
-          </select>
+    <AppCard class="form-card">
+      <form class="stack form" @submit.prevent="handleSubmit">
+        <div class="players">
+          <FormField v-slot="{ id }" label="Winner">
+            <select :id="id" v-model="winnerId" class="control" required>
+              <option value="" disabled>Select winner</option>
+              <option v-for="p in availablePlayers" :key="p.id" :value="p.id">{{ p.display_name }} ({{ p.elo }})</option>
+            </select>
+          </FormField>
+          <span class="players__vs" aria-hidden="true">vs</span>
+          <FormField v-slot="{ id }" label="Loser">
+            <select :id="id" v-model="loserId" class="control" required>
+              <option value="" disabled>Select loser</option>
+              <option v-for="p in availablePlayers" :key="p.id" :value="p.id">{{ p.display_name }} ({{ p.elo }})</option>
+            </select>
+          </FormField>
         </div>
-        <div class="vs">vs</div>
-        <div class="field">
-          <label>Loser</label>
-          <select v-model="loserId" required>
-            <option value="" disabled>Select loser</option>
-            <option v-for="p in availablePlayers" :key="p.id" :value="p.id">
-              {{ p.display_name }} ({{ p.elo }})
-            </option>
-          </select>
-        </div>
-      </div>
 
-      <p v-if="samePlayerError" class="error-msg">Winner and loser must be different players.</p>
+        <AppAlert v-if="samePlayerError">Winner and loser must be different players.</AppAlert>
 
-      <div class="sets-section">
-        <h3>Sets</h3>
-        <SetScoreInput
-          v-for="(set, i) in sets"
-          :key="i"
-          :index="i"
-          :modelValue="set"
-          :winnerId="winnerId"
-          @update:modelValue="sets[i] = $event"
-          @remove="removeSet(i)"
-        />
-        <button type="button" class="btn-secondary" @click="addSet">+ Add Set</button>
-      </div>
+        <fieldset class="sets">
+          <legend class="sets__legend">Sets <span class="text-muted">(winner – loser points)</span></legend>
+          <SetScoreInput
+            v-for="(set, i) in sets"
+            :key="i"
+            :index="i"
+            :modelValue="set"
+            :removable="i > 0"
+            @update:modelValue="sets[i] = $event"
+            @remove="removeSet(i)"
+          />
+          <AppButton variant="secondary" size="sm" class="sets__add" @click="addSet">Add set</AppButton>
+        </fieldset>
 
-      <div v-if="setErrors.length" class="error-msg">
-        <p v-for="e in setErrors" :key="e">{{ e }}</p>
-      </div>
+        <AppAlert v-if="setErrors.length">
+          <span v-for="e in setErrors" :key="e" class="block">{{ e }}</span>
+        </AppAlert>
+        <AppAlert v-if="submitError">{{ submitError }}</AppAlert>
+        <AppAlert v-if="successMsg" tone="success">{{ successMsg }}</AppAlert>
 
-      <p v-if="submitError" class="error-msg">{{ submitError }}</p>
-      <p v-if="successMsg" class="success-msg">{{ successMsg }}</p>
-
-      <button type="submit" class="btn-primary" :disabled="submitting || samePlayerError">
-        {{ submitting ? 'Saving…' : 'Record Match' }}
-      </button>
-    </form>
+        <AppButton type="submit" block :loading="submitting" :disabled="samePlayerError">
+          {{ submitting ? 'Saving…' : 'Record match' }}
+        </AppButton>
+      </form>
+    </AppCard>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { supabase } from '@/lib/supabase'
+import PageHeader from '@/components/PageHeader.vue'
+import AppCard from '@/components/AppCard.vue'
+import AppButton from '@/components/AppButton.vue'
+import AppAlert from '@/components/AppAlert.vue'
+import FormField from '@/components/FormField.vue'
 import SetScoreInput from '@/components/SetScoreInput.vue'
 
 const players = ref([])
@@ -139,3 +139,52 @@ onMounted(async () => {
   players.value = data ?? []
 })
 </script>
+
+<style scoped>
+.form-card {
+  max-width: 34rem;
+}
+.form {
+  gap: var(--space-5);
+}
+.players {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+}
+.players__vs {
+  justify-self: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.sets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 0;
+  min-width: 0;
+}
+.sets__legend {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.sets__add {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+}
+.block {
+  display: block;
+}
+
+@media (min-width: 40rem) {
+  .players {
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+  }
+  .players__vs {
+    padding-bottom: var(--space-3);
+  }
+}
+</style>

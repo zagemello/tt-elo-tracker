@@ -1,36 +1,38 @@
 <template>
-  <div class="auth-page">
-    <div class="auth-card">
-      <div class="auth-header">
-        <span class="ping-icon">🏓</span>
-        <h1>TT Elo Tracker</h1>
-        <p>Sign in to log matches and track your ranking</p>
+  <div class="auth">
+    <AppCard class="auth__card">
+      <div class="auth__header">
+        <img :src="logo" alt="TT Elo" class="auth__logo" />
+        <h1>{{ mode === 'signin' ? 'Welcome back' : 'Join the league' }}</h1>
+        <p>Sign in to log matches and track your ranking.</p>
       </div>
 
-      <div class="tab-row">
-        <button :class="{ active: mode === 'signin' }" @click="mode = 'signin'">Sign In</button>
-        <button :class="{ active: mode === 'signup' }" @click="mode = 'signup'">Sign Up</button>
-      </div>
+      <SegmentedControl v-model="mode" :options="modes" label="Account action" />
 
-      <form @submit.prevent="handleSubmit" class="auth-form">
-        <div class="field">
-          <label>Username</label>
-          <input v-model="username" type="text" required autocomplete="username" placeholder="e.g. john" />
-        </div>
+      <form class="stack auth__form" @submit.prevent="handleSubmit">
+        <FormField v-slot="{ id }" label="Username">
+          <input :id="id" v-model="username" class="control" type="text" required autocomplete="username" placeholder="e.g. john" />
+        </FormField>
 
-        <div class="field">
-          <label>Password</label>
-          <input v-model="password" type="password" required autocomplete="current-password" minlength="6" placeholder="min. 6 characters" />
-        </div>
+        <FormField v-slot="{ id }" label="Password" hint="At least 6 characters.">
+          <input
+            :id="id"
+            v-model="password"
+            class="control"
+            type="password"
+            required
+            minlength="6"
+            :autocomplete="mode === 'signin' ? 'current-password' : 'new-password'"
+          />
+        </FormField>
 
-        <p v-if="error" class="error-msg">{{ error }}</p>
-        <p v-if="successMsg" class="success-msg">{{ successMsg }}</p>
+        <AppAlert v-if="error">{{ error }}</AppAlert>
 
-        <button type="submit" class="btn-primary" :disabled="loading">
-          {{ loading ? 'Loading…' : mode === 'signin' ? 'Sign In' : 'Create Account' }}
-        </button>
+        <AppButton type="submit" block :loading="loading">
+          {{ loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account' }}
+        </AppButton>
       </form>
-    </div>
+    </AppCard>
   </div>
 </template>
 
@@ -38,26 +40,31 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import logo from '@/assets/logo.svg'
+import AppCard from '@/components/AppCard.vue'
+import AppButton from '@/components/AppButton.vue'
+import AppAlert from '@/components/AppAlert.vue'
+import FormField from '@/components/FormField.vue'
+import SegmentedControl from '@/components/SegmentedControl.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
 const mode = ref('signin')
+const modes = [
+  { label: 'Sign in', value: 'signin' },
+  { label: 'Sign up', value: 'signup' },
+]
 const username = ref('')
 const password = ref('')
 const error = ref('')
-const successMsg = ref('')
 const loading = ref(false)
 
 async function handleSubmit() {
   error.value = ''
-  successMsg.value = ''
   loading.value = true
   try {
-    if (mode.value === 'signin') {
-      await auth.signIn(username.value, password.value)
-    } else {
-      await auth.signUp(username.value, password.value)
-    }
+    if (mode.value === 'signin') await auth.signIn(username.value, password.value)
+    else await auth.signUp(username.value, password.value)
     router.push('/')
   } catch (e) {
     error.value = e.message
@@ -66,3 +73,36 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.auth {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-5);
+}
+.auth__card {
+  width: 100%;
+  max-width: 26rem;
+}
+.auth__header {
+  text-align: center;
+  margin-bottom: var(--space-5);
+}
+.auth__header h1 {
+  font-size: var(--text-xl);
+}
+.auth__header p {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.auth__logo {
+  display: block;
+  height: 6rem;
+  width: auto;
+  margin: 0 auto var(--space-3);
+}
+.auth__form {
+  margin-top: var(--space-5);
+}
+</style>
