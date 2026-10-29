@@ -19,6 +19,8 @@
       <AppButton type="submit" :disabled="!canCompare" class="pickers__submit">Compare</AppButton>
     </form>
 
+    <AppAlert v-if="error" class="h2h-error">{{ error }}</AppAlert>
+
     <div v-if="loaded">
       <AppCard class="versus">
         <div class="versus__side">
@@ -57,6 +59,7 @@ import MatchCard from '@/components/MatchCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import AppCard from '@/components/AppCard.vue'
 import AppButton from '@/components/AppButton.vue'
+import AppAlert from '@/components/AppAlert.vue'
 import FormField from '@/components/FormField.vue'
 import SectionBlock from '@/components/SectionBlock.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -70,6 +73,7 @@ const h2hMatches = ref([])
 const eloHistoryA = ref([])
 const eloHistoryB = ref([])
 const loaded = ref(false)
+const error = ref('')
 
 const canCompare = computed(() => playerAId.value && playerBId.value && playerAId.value !== playerBId.value)
 
@@ -85,11 +89,11 @@ const totalSetsB = computed(() =>
 
 async function loadH2H() {
   loaded.value = false
+  error.value = ''
   const aId = playerAId.value
   const bId = playerBId.value
 
-  const [{ data: pa }, { data: pb }, { data: matches }, { data: histA }, { data: histB }] =
-    await Promise.all([
+  const results = await Promise.all([
       supabase.from('profiles').select('*').eq('id', aId).single(),
       supabase.from('profiles').select('*').eq('id', bId).single(),
       supabase
@@ -109,7 +113,14 @@ async function loadH2H() {
         .select('new_elo, recorded_at')
         .eq('player_id', bId)
         .order('recorded_at', { ascending: true }),
-    ])
+  ])
+
+  const failed = results.find((r) => r.error)
+  if (failed) {
+    error.value = `Couldn't load the comparison: ${failed.error.message}`
+    return
+  }
+  const [{ data: pa }, { data: pb }, { data: matches }, { data: histA }, { data: histB }] = results
 
   playerA.value = pa
   playerB.value = pb
@@ -120,12 +131,16 @@ async function loadH2H() {
 }
 
 ;(async () => {
-  const { data } = await supabase.from('profiles').select('id, display_name').order('display_name')
+  const { data, error: playersError } = await supabase.from('profiles').select('id, display_name').order('display_name')
+  if (playersError) error.value = `Couldn't load players: ${playersError.message}`
   players.value = data ?? []
 })()
 </script>
 
 <style scoped>
+.h2h-error {
+  margin-top: var(--space-4);
+}
 .pickers {
   display: grid;
   gap: var(--space-3);

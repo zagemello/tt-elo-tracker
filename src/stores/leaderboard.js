@@ -6,8 +6,10 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
   const players = ref([])
   const loading = ref(false)
   let subscription = null
+  let activeFilter = 'all'
 
   async function fetchPlayers(filter = 'all') {
+    activeFilter = filter
     loading.value = true
     let query = supabase.from('profiles').select('*').order('elo', { ascending: false })
 
@@ -33,7 +35,7 @@ export const useLeaderboardStore = defineStore('leaderboard', () => {
     subscription = supabase
       .channel('leaderboard-profiles')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        fetchPlayers()
+        fetchPlayers(activeFilter)
       })
       .subscribe()
   }

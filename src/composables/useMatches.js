@@ -9,11 +9,12 @@ export function useMatches({ limit = 50 } = {}) {
   const error = ref('')
 
   async function fetchMatches() {
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('matches')
       .select('*, winner:winner_id(display_name, avatar_url), loser:loser_id(display_name, avatar_url)')
       .order('played_at', { ascending: false })
       .limit(limit)
+    if (fetchError) error.value = `Couldn't load matches: ${fetchError.message}`
     matches.value = data ?? []
     loading.value = false
   }
